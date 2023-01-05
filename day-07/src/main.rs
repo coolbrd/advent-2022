@@ -1,4 +1,4 @@
-use std::{fs, f32::INFINITY};
+use std::fs;
 
 struct Directory<'a> {
     name: &'a str,
