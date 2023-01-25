@@ -106,18 +106,22 @@ enum PlayerAction {
 }
 
 fn main() {
-    let path = "resources/input.txt";
+    let path = "resources/input2.txt";
     let contents = fs::read_to_string(path).expect("File not found");
     let parts = contents.split("\n\n").map(|line| line.trim_end()).collect::<Vec<&str>>();
 
-    // Part 1
-    let monkey_map = parse_wrapping_monkey_map(parts[0]);
     let actions = parse_actions(parts[1]);
-    let starting_map_position = get_starting_map_position(&monkey_map);
-    let mut player = Player { map: &monkey_map, position: *starting_map_position, facing: Direction::East };
+    
+    // Part 1
+    let wrapping_monkey_map = parse_wrapping_monkey_map(parts[0]);
+    let starting_map_position = get_starting_map_position(&wrapping_monkey_map);
+    let mut player = Player { map: &wrapping_monkey_map, position: *starting_map_position, facing: Direction::East };
     player.perform_actions(&actions);
     let password = calculate_password(&player);
     println!("Password: {}", password);
+
+    let cube_side_length = ((wrapping_monkey_map.len() / 6) as f64).sqrt() as usize;
+    println!("Cube side length: {}", cube_side_length);
 }
 
 fn parse_wrapping_monkey_map(map_string: &str) -> MonkeyMap {
