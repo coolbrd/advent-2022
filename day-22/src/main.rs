@@ -111,7 +111,7 @@ fn main() {
     let parts = contents.split("\n\n").map(|line| line.trim_end()).collect::<Vec<&str>>();
 
     let actions = parse_actions(parts[1]);
-    
+
     // Part 1
     let wrapping_monkey_map = parse_wrapping_monkey_map(parts[0]);
     let starting_map_position = get_starting_map_position(&wrapping_monkey_map);
