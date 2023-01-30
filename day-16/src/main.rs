@@ -2,7 +2,7 @@ use std::{fs, collections::{HashMap, HashSet}};
 
 type ValveIdentifier = u8;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct ValveState {
     player_transits: (Option<PlayerTransit>, Option<PlayerTransit>),
     open_valves: Vec<bool>,
@@ -214,7 +214,6 @@ fn compute_valve_network(named_valves: HashMap<String, (u16, Vec<String>)>) -> V
     return network;
 }
 
-#[derive(Debug)]
 struct Valve {
     flow: u16,
     neighbors: HashMap<ValveIdentifier, u16>
