@@ -6,13 +6,13 @@ type MapPos = (MapPosComp, MapPosComp);
 
 type MonkeyMap = HashMap<(MapPosComp, MapPosComp), MapSpace>;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct MapSpace {
     neighbors: HashMap<Direction, (MapPos, Direction)>,
     is_wall: bool,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 enum Direction {
     North,
     South,
@@ -27,15 +27,6 @@ impl Direction {
             Direction::South => (0, 1),
             Direction::West => (-1, 0),
             Direction::East => (1, 0),
-        }
-    }
-
-    fn is_aligned(&self, other: &Direction) -> bool {
-        match self {
-            Direction::North => *other == Direction::North || *other == Direction::East,
-            Direction::South => *other == Direction::South || *other == Direction::West,
-            Direction::West => *other == Direction::North || *other == Direction::West,
-            Direction::East => *other == Direction::South || *other == Direction::East,
         }
     }
 }
@@ -109,7 +100,6 @@ impl Player<'_> {
     }
 }
 
-#[derive(Debug)]
 enum PlayerAction {
     MoveForward(usize),
     TurnLeft,
