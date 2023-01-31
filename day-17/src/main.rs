@@ -1,6 +1,5 @@
 use std::{fs, collections::{HashSet, HashMap}};
 
-#[derive(Debug)]
 enum GustDirection {
     Left,
     Right
@@ -122,38 +121,6 @@ impl Chamber {
             }
         }
     }
-
-    fn draw(&self) {
-        for y in (0..=self.highest_point_y + 7).rev() {
-            for x in 0..self.width {
-                if self.points.contains(&(x, y)) {
-                    print!("#");
-                } else {
-                    print!(".");
-                }
-            }
-            println!();
-        }
-    }
-
-    fn draw_with_rock(&self, rock: &Rock, origin: (u8, u64)) {
-        for y in (0..=self.highest_point_y + 7).rev() {
-            for x in 0..self.width {
-                if self.points.contains(&(x, y)) {
-                    print!("#");
-                } else if rock.body_points.iter().map(|body_point| {
-                    (origin.0 + body_point.0, origin.1 + body_point.1 as u64)
-                }).any(|body_point| {
-                    body_point.0 == x && body_point.1 == y
-                }) {
-                    print!("O");
-                } else {
-                    print!(".");
-                }
-            }
-            println!();
-        }
-    }
 }
 
 fn main() {
@@ -183,7 +150,7 @@ fn main() {
     for _ in 0_u64..target {
         chamber.drop_rock(&mut rocks, &mut gusts);
     }
-    println!("Height after 2022 rocks: {}", chamber.highest_point_y);
+    println!("Height after {} rocks: {}", target, chamber.highest_point_y);
 
     // Part 2
     let mut chamber = Chamber::new(7);
@@ -204,9 +171,7 @@ fn main() {
             let differences = heights.windows(2).map(|window| {
                 window[1] - window[0]
             }).collect::<Vec<u64>>();
-            if differences.len() > 40 && differences.iter().all(|diff| {
-                *diff == differences[0]
-            }) {
+            if differences.len() > 1 && differences.iter().all(|diff| *diff == differences[0]) {
                 cycle_pair = current_pair;
                 break;
             }
@@ -217,20 +182,21 @@ fn main() {
         }
         i += 1;
     }
+    let target = 1_000_000_000_000;
     let cycle_start = cycle_indices.get(&cycle_pair).unwrap()[0];
     let cycle_start_height = cycle_heights.get(&cycle_pair).unwrap()[0];
     let cycle_length = cycle_indices.get(&cycle_pair).unwrap()[1] - cycle_start;
     let cycle_height_diff = cycle_heights.get(&cycle_pair).unwrap()[1] - cycle_start_height;
-    let cycling_rocks = 1000000000000 - cycle_start;
-    let cycles_total = (cycling_rocks as f64 / cycle_length as f64).floor();
-    let leftover_rocks = cycling_rocks - (cycles_total as u64 * cycle_length);
+    let cycling_rocks = target - cycle_start;
+    let cycles_total = cycling_rocks / cycle_length;
+    let leftover_rocks = cycling_rocks - cycles_total * cycle_length;
     rocks.current_index = cycle_pair.0;
     gusts.current_index = cycle_pair.1;
-    let cur_height = chamber.highest_point_y;
+    let height_before_leftovers = chamber.highest_point_y;
     for _ in 0..leftover_rocks {
         chamber.drop_rock(&mut rocks, &mut gusts);
     }
-    let height_dif = chamber.highest_point_y - cur_height;
-    let answer = cycles_total * cycle_height_diff as f64 + cycle_start_height as f64 + height_dif as f64 - 1.0;
-    println!("Height after one trillion rocks: {}", answer);
+    let leftover_height = chamber.highest_point_y - height_before_leftovers;
+    let answer = cycles_total * cycle_height_diff + cycle_start_height + leftover_height - 1;
+    println!("Height after {} rocks: {}", target, answer);
 }
