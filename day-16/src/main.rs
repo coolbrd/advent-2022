@@ -79,7 +79,7 @@ impl ValveState {
             HashMap::new()
         };
 
-        if self.all_valves_open() || (player_1_paths.is_empty() && player_2_paths.is_empty()) {
+        if player_1_paths.is_empty() && player_2_paths.is_empty() {
             let successor = ValveState {
                 player_transits: updated_player_transits,
                 open_valves: updated_open_valves.clone(),
@@ -93,18 +93,18 @@ impl ValveState {
         let mut destination_combinations = vec![];
         if player_1_paths.is_empty() {
             destination_combinations = player_2_paths.iter().map(|(valve, distance)| {
-                ((None, Some(*valve)), (None, Some(*distance)))
+                ((None, None), (Some(*valve), Some(*distance)))
             }).collect();
         }
         else if player_2_paths.is_empty() {
             destination_combinations = player_1_paths.iter().map(|(valve, distance)| {
-                ((Some(*valve), None), (Some(*distance), None))
+                ((Some(*valve), Some(*distance)), (None, None))
             }).collect();
         }
         else {
             for (p1_valve, p1_distance) in &player_1_paths {
                 for (p2_valve, p2_distance) in &player_2_paths {
-                    destination_combinations.push(((Some(*p1_valve), Some(*p2_valve)), (Some(*p1_distance), Some(*p2_distance))));
+                    destination_combinations.push(((Some(*p1_valve), Some(*p1_distance)), (Some(*p2_valve), Some(*p2_distance))));
                 }
             }
         }
@@ -112,17 +112,20 @@ impl ValveState {
         for combination in destination_combinations {
             let mut new_player_transits = updated_player_transits.clone();
             if let Some(player_1_destination) = combination.0.0 {
-                new_player_transits.0 = Some((player_1_destination, combination.1.0.unwrap() + 1));
+                new_player_transits.0 = Some((player_1_destination, combination.0.1.unwrap() + 1));
             }
-            if let Some(player_2_destination) = combination.0.1 {
+            if let Some(player_2_destination) = combination.1.0 {
                 new_player_transits.1 = Some((player_2_destination, combination.1.1.unwrap() + 1));
             }
-            let steps_until_next_arrival = new_player_transits.0.unwrap_or((u8::MAX, u16::MAX)).1.min(new_player_transits.1.unwrap_or((u8::MAX, u16::MAX)).1);
-            if new_player_transits.0.is_some() {
-                new_player_transits.0 = Some((new_player_transits.0.unwrap().0, new_player_transits.0.unwrap().1 - steps_until_next_arrival));
+            let steps_until_next_arrival = match new_player_transits.0 {
+                Some(transit) => transit.1.min(new_player_transits.1.unwrap_or(transit).1),
+                None => new_player_transits.1.unwrap().1
+            };
+            if let Some(transit) = new_player_transits.0 {
+                new_player_transits.0 = Some((transit.0, transit.1 - steps_until_next_arrival));
             }
-            if new_player_transits.1.is_some() {
-                new_player_transits.1 = Some((new_player_transits.1.unwrap().0, new_player_transits.1.unwrap().1 - steps_until_next_arrival));
+            if let Some(transit) = new_player_transits.1 {
+                new_player_transits.1 = Some((transit.0, transit.1 - steps_until_next_arrival));
             }
             let successor = ValveState {
                 player_transits: new_player_transits,
@@ -137,10 +140,6 @@ impl ValveState {
 
     fn is_done(&self) -> bool {
         self.steps_left == 0
-    }
-
-    fn all_valves_open(&self) -> bool {
-        self.open_valves.iter().all(|&valve| valve)
     }
 
     fn valve_is_open(&self, valve_id: ValveIdentifier) -> bool {
@@ -233,12 +232,14 @@ fn main() {
     let network = compute_valve_network(named_valves);
 
     // Part 1
-    let initial_state = ValveState::new(&network, 30, false);
+    let steps_left = 30;
+    let initial_state = ValveState::new(&network, steps_left, false);
     let max_release = initial_state.get_max_possible_released_pressure(&network);
-    println!("Max release after 30 minutes with one player: {}", max_release);
+    println!("Max release after {} minutes with one player: {}", steps_left, max_release);
 
     // Part 2
-    let initial_state = ValveState::new(&network, 26, true);
+    let steps_left = 26;
+    let initial_state = ValveState::new(&network, steps_left, true);
     let max_release = initial_state.get_max_possible_released_pressure(&network);
-    println!("Max release after 26 minutes with two players: {}", max_release);
+    println!("Max release after {} minutes with two players: {}", steps_left, max_release);
 }
