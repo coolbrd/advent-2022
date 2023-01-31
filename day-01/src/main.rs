@@ -1,14 +1,21 @@
-use std::fs;
 use std::cmp;
+use std::fs;
 
 fn main() {
     let path = "resources/input.txt";
     let contents = fs::read_to_string(path).expect("File not found");
     let lines = contents.split("\n\n").collect::<Vec<&str>>();
-    let elves: Vec<Vec<u32>> = lines.iter().map(|cal_list_str| -> Vec<u32> {
-        cal_list_str.split("\n").collect::<Vec<&str>>().iter()
-                    .map(|cal| cal.parse().expect("Unable to parse calorie input")).collect()
-    }).collect();
+    let elves: Vec<Vec<u32>> = lines
+        .iter()
+        .map(|cal_list_str| -> Vec<u32> {
+            cal_list_str
+                .split("\n")
+                .collect::<Vec<&str>>()
+                .iter()
+                .map(|cal| cal.parse().expect("Unable to parse calorie input"))
+                .collect()
+        })
+        .collect();
     let elf_totals: Vec<u32> = elves.iter().map(|elf| elf.iter().sum()).collect();
 
     // Part 1
@@ -20,14 +27,24 @@ fn main() {
         max_idx = Some(elf.0);
     });
     let max_val = max_val.expect("No max value found. Elf list likely empty.");
-    let max_idx = max_idx.unwrap();
-    let max_inv = &elves[max_idx];
-    println!("Elf #{} has a max calorie count of {} from the following items: {:?}", max_idx, max_val, max_inv);
+    let max_idx = max_idx.expect("No max index found. Elf list likely empty.");
+    println!(
+        "Elf #{} has the highest calorie count, {}",
+        max_idx, max_val
+    );
 
     // Part 2
     let mut elf_totals = elf_totals.clone();
     elf_totals.sort();
-    let three_highest = elf_totals.iter().rev().take(3).copied().collect::<Vec<u32>>();
+    let three_highest = elf_totals
+        .iter()
+        .rev()
+        .take(3)
+        .copied()
+        .collect::<Vec<u32>>();
     let three_highest_sum: u32 = three_highest.iter().sum();
-    println!("The three highest calorie counts are {:?}, totalling to {}", three_highest, three_highest_sum);
+    println!(
+        "The three highest calorie counts are {:?}, totalling to {}",
+        three_highest, three_highest_sum
+    );
 }
