@@ -1,12 +1,12 @@
 use std::{collections::VecDeque, fs};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq)]
 enum PacketItem {
     Val(u8),
     List(Vec<PacketItem>),
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq)]
 enum PacketOrderCorrectness {
     Correct,
     Incorrect,
