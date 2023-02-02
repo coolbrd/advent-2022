@@ -101,9 +101,9 @@ impl ElfGroupDispersalGame {
             if elves_going_to_destination.len() == 1 {
                 new_group.insert(*destination_pos);
             } else {
-                elves_going_to_destination.iter().for_each(|elf_pos| {
-                    new_group.insert(*elf_pos);
-                });
+                for &elf_pos in elves_going_to_destination {
+                    new_group.insert(elf_pos);
+                }
             }
         }
         self.elves_moved_last_round = elves_moved_this_round;

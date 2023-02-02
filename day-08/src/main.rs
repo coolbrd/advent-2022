@@ -24,7 +24,7 @@ fn main() {
     for (i, tree_line) in trees.iter().enumerate() {
         let mut tallest: Option<u8> = None;
         let mut distance_to_nearest_tree_of_at_least_height: Vec<Option<u16>> = vec![None; 10];
-        tree_line.iter().enumerate().for_each(|(j, &tree)| {
+        for (j, &tree) in tree_line.iter().enumerate() {
             tallest = Some(update_visible_trees(
                 tallest,
                 tree,
@@ -40,31 +40,27 @@ fn main() {
                 j,
                 j as u16,
             );
-        });
+        }
         let mut tallest: Option<u8> = None;
         let mut distance_to_nearest_tree_of_at_least_height: Vec<Option<u16>> = vec![None; 10];
-        tree_line
-            .iter()
-            .rev()
-            .enumerate()
-            .for_each(|(j_rev, &tree)| {
-                let j = tree_line.len() - j_rev - 1;
-                tallest = Some(update_visible_trees(
-                    tallest,
-                    tree,
-                    &mut visible_trees,
-                    i,
-                    j,
-                ));
-                update_score_component(
-                    &mut right_score_components,
-                    &mut distance_to_nearest_tree_of_at_least_height,
-                    tree,
-                    i,
-                    j,
-                    j_rev as u16,
-                );
-            });
+        for (j_rev, &tree) in tree_line.iter().rev().enumerate() {
+            let j = tree_line.len() - j_rev - 1;
+            tallest = Some(update_visible_trees(
+                tallest,
+                tree,
+                &mut visible_trees,
+                i,
+                j,
+            ));
+            update_score_component(
+                &mut right_score_components,
+                &mut distance_to_nearest_tree_of_at_least_height,
+                tree,
+                i,
+                j,
+                j_rev as u16,
+            );
+        }
     }
     for j in 0..trees[0].len() {
         let tree_line = trees
@@ -73,10 +69,10 @@ fn main() {
             .collect::<Vec<u8>>();
         let mut tallest: Option<u8> = None;
         let mut distance_to_nearest_tree_of_at_least_height: Vec<Option<u16>> = vec![None; 10];
-        tree_line.iter().enumerate().for_each(|(i, tree)| {
+        for (i, &tree) in tree_line.iter().enumerate() {
             tallest = Some(update_visible_trees(
                 tallest,
-                *tree,
+                tree,
                 &mut visible_trees,
                 i,
                 j,
@@ -84,36 +80,32 @@ fn main() {
             update_score_component(
                 &mut down_score_components,
                 &mut distance_to_nearest_tree_of_at_least_height,
-                *tree,
+                tree,
                 i,
                 j,
                 i as u16,
             );
-        });
+        }
         let mut tallest: Option<u8> = None;
         let mut distance_to_nearest_tree_of_at_least_height: Vec<Option<u16>> = vec![None; 10];
-        tree_line
-            .iter()
-            .rev()
-            .enumerate()
-            .for_each(|(i_rev, tree)| {
-                let i = tree_line.len() - i_rev - 1;
-                tallest = Some(update_visible_trees(
-                    tallest,
-                    *tree,
-                    &mut visible_trees,
-                    i,
-                    j,
-                ));
-                update_score_component(
-                    &mut up_score_components,
-                    &mut distance_to_nearest_tree_of_at_least_height,
-                    *tree,
-                    i,
-                    j,
-                    i_rev as u16,
-                );
-            });
+        for (i_rev, &tree) in tree_line.iter().rev().enumerate() {
+            let i = tree_line.len() - i_rev - 1;
+            tallest = Some(update_visible_trees(
+                tallest,
+                tree,
+                &mut visible_trees,
+                i,
+                j,
+            ));
+            update_score_component(
+                &mut up_score_components,
+                &mut distance_to_nearest_tree_of_at_least_height,
+                tree,
+                i,
+                j,
+                i_rev as u16,
+            );
+        }
     }
 
     // Part 1

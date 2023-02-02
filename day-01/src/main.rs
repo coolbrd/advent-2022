@@ -21,11 +21,11 @@ fn main() {
     // Part 1
     let mut max_val: Option<u32> = None;
     let mut max_idx: Option<usize> = None;
-    elf_totals.iter().enumerate().for_each(|elf| -> () {
-        let cur_elf_val = *elf.1;
+    for (i, elf) in elf_totals.iter().enumerate() {
+        let cur_elf_val = *elf;
         max_val = Some(cmp::max(cur_elf_val, max_val.unwrap_or(cur_elf_val)));
-        max_idx = Some(elf.0);
-    });
+        max_idx = Some(i);
+    }
     let max_val = max_val.expect("No max value found. Elf list likely empty.");
     let max_idx = max_idx.expect("No max index found. Elf list likely empty.");
     println!(

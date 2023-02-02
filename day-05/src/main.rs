@@ -27,13 +27,13 @@ fn main() {
         })
         .collect::<Vec<Vec<Option<char>>>>();
     let mut cubes: Vec<Vec<char>> = vec![Vec::new(); cubes_transpose[0].len()];
-    cubes_transpose.iter().for_each(|row| {
-        row.iter().enumerate().for_each(|(i, cube)| {
+    for row in cubes_transpose {
+        for (i, cube) in row.iter().enumerate() {
             if let Some(val) = cube {
                 cubes[i].push(*val);
             }
-        });
-    });
+        }
+    }
     let steps = input_sections[1]
         .split("\n")
         .map(|line| {
