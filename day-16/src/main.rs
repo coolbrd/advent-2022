@@ -1,33 +1,47 @@
-use std::{fs, collections::{HashMap, HashSet}};
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+};
 
 type ValveIdentifier = u8;
+
+type StepAmount = u16;
+
+type FlowAmount = u16;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct ValveState {
     player_transits: (Option<PlayerTransit>, Option<PlayerTransit>),
     open_valves: Vec<bool>,
-    steps_left: u16,
-    pressure_released: u16
+    steps_left: StepAmount,
+    pressure_released: FlowAmount,
 }
 
-type PlayerTransit = (ValveIdentifier, u16);
+type PlayerTransit = (ValveIdentifier, StepAmount);
 
 impl ValveState {
-    fn new(network: &ValveNetwork, steps_left: u16, is_two_player: bool) -> ValveState {
+    fn new(network: &ValveNetwork, steps_left: StepAmount, is_two_player: bool) -> ValveState {
         ValveState {
-            player_transits: (Some((0, 0)), if is_two_player { Some((0, 0)) } else { None }),
+            player_transits: (
+                Some((0, 0)),
+                if is_two_player { Some((0, 0)) } else { None },
+            ),
             open_valves: vec![false; network.len()],
             steps_left,
-            pressure_released: 0
+            pressure_released: 0,
         }
     }
 
-    fn get_max_possible_released_pressure(&self, network: &ValveNetwork) -> u16 {
+    fn get_max_possible_released_pressure(&self, network: &ValveNetwork) -> FlowAmount {
         let releases = self.get_possible_final_pressure_releases(network, HashSet::new());
         return *releases.iter().max().unwrap();
     }
 
-    fn get_possible_final_pressure_releases(&self, network: &ValveNetwork, mut seen: HashSet<ValveState>) -> Vec<u16> {
+    fn get_possible_final_pressure_releases(
+        &self,
+        network: &ValveNetwork,
+        mut seen: HashSet<ValveState>,
+    ) -> Vec<FlowAmount> {
         if self.is_done() {
             return vec![self.pressure_released];
         }
@@ -35,7 +49,9 @@ impl ValveState {
         let mut final_pressure_releases = Vec::new();
         while !successors.is_empty() {
             let successor = successors.pop().unwrap();
-            if seen.contains(&successor) { continue }
+            if seen.contains(&successor) {
+                continue;
+            }
             if successor.is_done() {
                 final_pressure_releases.push(successor.pressure_released);
             }
@@ -48,7 +64,9 @@ impl ValveState {
 
     fn get_successors(&self, network: &ValveNetwork) -> Vec<ValveState> {
         let mut successors = Vec::new();
-        if self.is_done() { return successors }
+        if self.is_done() {
+            return successors;
+        }
 
         let mut player_positions = (None, None);
         let mut updated_player_transits = self.player_transits.clone();
@@ -84,7 +102,9 @@ impl ValveState {
                 player_transits: updated_player_transits,
                 open_valves: updated_open_valves.clone(),
                 steps_left: 0,
-                pressure_released: self.pressure_released + self.get_step_pressure_released(&updated_open_valves, network) * self.steps_left
+                pressure_released: self.pressure_released
+                    + self.get_step_pressure_released(&updated_open_valves, network)
+                        * self.steps_left,
             };
             successors.push(successor);
             return successors;
@@ -92,34 +112,37 @@ impl ValveState {
 
         let mut destination_combinations = vec![];
         if player_1_paths.is_empty() {
-            destination_combinations = player_2_paths.iter().map(|(valve, distance)| {
-                ((None, None), (Some(*valve), Some(*distance)))
-            }).collect();
-        }
-        else if player_2_paths.is_empty() {
-            destination_combinations = player_1_paths.iter().map(|(valve, distance)| {
-                ((Some(*valve), Some(*distance)), (None, None))
-            }).collect();
-        }
-        else {
+            destination_combinations = player_2_paths
+                .iter()
+                .map(|(valve, distance)| ((None, None), (Some(*valve), Some(*distance))))
+                .collect();
+        } else if player_2_paths.is_empty() {
+            destination_combinations = player_1_paths
+                .iter()
+                .map(|(valve, distance)| ((Some(*valve), Some(*distance)), (None, None)))
+                .collect();
+        } else {
             for (p1_valve, p1_distance) in &player_1_paths {
                 for (p2_valve, p2_distance) in &player_2_paths {
-                    destination_combinations.push(((Some(*p1_valve), Some(*p1_distance)), (Some(*p2_valve), Some(*p2_distance))));
+                    destination_combinations.push((
+                        (Some(*p1_valve), Some(*p1_distance)),
+                        (Some(*p2_valve), Some(*p2_distance)),
+                    ));
                 }
             }
         }
 
         for combination in destination_combinations {
             let mut new_player_transits = updated_player_transits.clone();
-            if let Some(player_1_destination) = combination.0.0 {
-                new_player_transits.0 = Some((player_1_destination, combination.0.1.unwrap() + 1));
+            if let Some(player_1_destination) = combination.0 .0 {
+                new_player_transits.0 = Some((player_1_destination, combination.0 .1.unwrap() + 1));
             }
-            if let Some(player_2_destination) = combination.1.0 {
-                new_player_transits.1 = Some((player_2_destination, combination.1.1.unwrap() + 1));
+            if let Some(player_2_destination) = combination.1 .0 {
+                new_player_transits.1 = Some((player_2_destination, combination.1 .1.unwrap() + 1));
             }
             let steps_until_next_arrival = match new_player_transits.0 {
                 Some(transit) => transit.1.min(new_player_transits.1.unwrap_or(transit).1),
-                None => new_player_transits.1.unwrap().1
+                None => new_player_transits.1.unwrap().1,
             };
             if let Some(transit) = new_player_transits.0 {
                 new_player_transits.0 = Some((transit.0, transit.1 - steps_until_next_arrival));
@@ -131,7 +154,9 @@ impl ValveState {
                 player_transits: new_player_transits,
                 open_valves: updated_open_valves.clone(),
                 steps_left: self.steps_left - steps_until_next_arrival,
-                pressure_released: self.pressure_released + self.get_step_pressure_released(&updated_open_valves, network) * steps_until_next_arrival
+                pressure_released: self.pressure_released
+                    + self.get_step_pressure_released(&updated_open_valves, network)
+                        * steps_until_next_arrival,
             };
             successors.push(successor);
         }
@@ -146,7 +171,11 @@ impl ValveState {
         self.open_valves[valve_id as usize]
     }
 
-    fn get_step_pressure_released(&self, open_valves: &Vec<bool>, network: &ValveNetwork) -> u16 {
+    fn get_step_pressure_released(
+        &self,
+        open_valves: &Vec<bool>,
+        network: &ValveNetwork,
+    ) -> FlowAmount {
         let mut sum = 0;
         for (valve_id, valve) in network.iter() {
             if open_valves[*valve_id as usize] {
@@ -156,13 +185,23 @@ impl ValveState {
         return sum;
     }
 
-    fn get_shortest_paths_to_useful_valves(&self, network: &ValveNetwork, position: ValveIdentifier) -> HashMap<ValveIdentifier, u16> {
+    fn get_shortest_paths_to_useful_valves(
+        &self,
+        network: &ValveNetwork,
+        position: ValveIdentifier,
+    ) -> HashMap<ValveIdentifier, StepAmount> {
         let current_valve = network.get(&position).unwrap();
-        current_valve.neighbors.iter().filter(|(valve, distance)| {
-            **distance != 0 && (**distance + 1) <= self.steps_left && !self.valve_is_open(**valve) && network.get_valve(**valve).flow > 0
-        }).map(|(valve, distance)| {
-            (*valve, *distance)
-        }).collect()
+        current_valve
+            .neighbors
+            .iter()
+            .filter(|&(&valve, &distance)| {
+                distance != 0
+                    && (distance + 1) <= self.steps_left
+                    && !self.valve_is_open(valve)
+                    && network.get_valve(valve).flow > 0
+            })
+            .map(|(valve, distance)| (*valve, *distance))
+            .collect()
     }
 }
 
@@ -178,13 +217,17 @@ impl HasValve for ValveNetwork {
     }
 }
 
-fn compute_valve_network(named_valves: HashMap<String, (u16, Vec<String>)>) -> ValveNetwork {
-    let mut network: ValveNetwork = HashMap::new();
-    let mut valve_ids = named_valves.iter().collect::<Vec<(&String, &(u16, Vec<String>))>>();
+fn compute_valve_network(named_valves: HashMap<String, (StepAmount, Vec<String>)>) -> ValveNetwork {
+    let mut network = HashMap::new();
+    let mut valve_ids = named_valves
+        .iter()
+        .collect::<Vec<(&String, &(StepAmount, Vec<String>))>>();
     valve_ids.sort_by(|a, b| a.0.cmp(b.0));
-    let valve_ids = valve_ids.iter().enumerate().map(move |(i, (name, _))| {
-        ((*name).clone(), i as ValveIdentifier)
-    }).collect::<HashMap<String, ValveIdentifier>>();
+    let valve_ids = valve_ids
+        .iter()
+        .enumerate()
+        .map(move |(i, (name, _))| ((*name).clone(), i as ValveIdentifier))
+        .collect::<HashMap<String, ValveIdentifier>>();
     for (current_valve_name, (current_valve_flow, _)) in &named_valves {
         let current_valve_id = valve_ids.get(current_valve_name).unwrap();
         let mut paths = HashMap::new();
@@ -193,7 +236,7 @@ fn compute_valve_network(named_valves: HashMap<String, (u16, Vec<String>)>) -> V
         while !queue.is_empty() {
             let (valve_name, distance) = queue.pop().unwrap();
             let valve_id = valve_ids.get(&valve_name).unwrap();
-            if paths.contains_key(valve_id) { 
+            if paths.contains_key(valve_id) {
                 if *paths.get(valve_id).unwrap() <= distance {
                     continue;
                 }
@@ -206,7 +249,7 @@ fn compute_valve_network(named_valves: HashMap<String, (u16, Vec<String>)>) -> V
         }
         let new_valve = Valve {
             flow: *current_valve_flow,
-            neighbors: paths
+            neighbors: paths,
         };
         network.insert(*current_valve_id, new_valve);
     }
@@ -214,32 +257,52 @@ fn compute_valve_network(named_valves: HashMap<String, (u16, Vec<String>)>) -> V
 }
 
 struct Valve {
-    flow: u16,
-    neighbors: HashMap<ValveIdentifier, u16>
+    flow: FlowAmount,
+    neighbors: HashMap<ValveIdentifier, StepAmount>,
 }
 
 fn main() {
     let path = "resources/input.txt";
     let contents = fs::read_to_string(path).expect("File not found");
-    let lines = contents.split("\n").map(|line| line.trim()).collect::<Vec<&str>>();
-    let named_valves = lines.iter().map(|line| {
-        let mut components = line.split(":").map(|s| s.to_owned()).collect::<Vec<String>>();
-        let neighbor_names = components.pop().unwrap().split(",").map(|s| s.to_owned()).collect::<Vec<String>>();
-        let flow = components.pop().unwrap().parse::<u16>().unwrap();
-        let name = components.pop().unwrap();
-        (name, (flow, neighbor_names))
-    }).collect::<HashMap<String, (u16, Vec<String>)>>();
+    let lines = contents
+        .split("\n")
+        .map(|line| line.trim())
+        .collect::<Vec<&str>>();
+    let named_valves = lines
+        .iter()
+        .map(|line| {
+            let mut components = line
+                .split(":")
+                .map(|s| s.to_owned())
+                .collect::<Vec<String>>();
+            let neighbor_names = components
+                .pop()
+                .unwrap()
+                .split(",")
+                .map(|s| s.to_owned())
+                .collect::<Vec<String>>();
+            let flow = components.pop().unwrap().parse::<FlowAmount>().unwrap();
+            let name = components.pop().unwrap();
+            (name, (flow, neighbor_names))
+        })
+        .collect::<HashMap<String, (StepAmount, Vec<String>)>>();
     let network = compute_valve_network(named_valves);
 
     // Part 1
     let steps_left = 30;
     let initial_state = ValveState::new(&network, steps_left, false);
     let max_release = initial_state.get_max_possible_released_pressure(&network);
-    println!("Max release after {} minutes with one player: {}", steps_left, max_release);
+    println!(
+        "Max release after {} minutes with one player: {}",
+        steps_left, max_release
+    );
 
     // Part 2
     let steps_left = 26;
     let initial_state = ValveState::new(&network, steps_left, true);
     let max_release = initial_state.get_max_possible_released_pressure(&network);
-    println!("Max release after {} minutes with two players: {}", steps_left, max_release);
+    println!(
+        "Max release after {} minutes with two players: {}",
+        steps_left, max_release
+    );
 }
