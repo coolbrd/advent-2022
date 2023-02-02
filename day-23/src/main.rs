@@ -1,6 +1,9 @@
-use std::{fs, collections::{HashSet, HashMap}};
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 enum CardinalDirection {
     North,
     East,
@@ -20,7 +23,9 @@ impl CardinalDirection {
 }
 
 type ElfPosComp = i64;
+
 type ElfPos = (ElfPosComp, ElfPosComp);
+
 type ElfGroup = HashSet<ElfPos>;
 
 trait CanAddCardinalDirection {
@@ -43,7 +48,12 @@ struct ElfGroupDispersalGame {
 
 impl ElfGroupDispersalGame {
     fn new(group: ElfGroup) -> Self {
-        let direction_order = vec![CardinalDirection::North, CardinalDirection::South, CardinalDirection::West, CardinalDirection::East];
+        let direction_order = vec![
+            CardinalDirection::North,
+            CardinalDirection::South,
+            CardinalDirection::West,
+            CardinalDirection::East,
+        ];
         ElfGroupDispersalGame {
             group,
             direction_order,
@@ -66,13 +76,13 @@ impl ElfGroupDispersalGame {
 
     fn perform_round(&mut self) {
         let mut elves_moved_this_round = false;
-        let mut tentative_elf_destinations: HashMap<ElfPos, Vec<ElfPos>> = HashMap::new();
+        let mut tentative_elf_destinations = HashMap::new();
         for elf_pos in self.group.iter() {
             let destination = if self.elf_is_isolated(elf_pos) {
                 *elf_pos
             } else {
                 elves_moved_this_round = true;
-                let mut destination: Option<ElfPos> = None;
+                let mut destination = None;
                 for direction in self.direction_order.iter() {
                     if self.elf_can_move_in_direction(elf_pos, direction) {
                         destination = Some(elf_pos.add(*direction));
@@ -81,14 +91,19 @@ impl ElfGroupDispersalGame {
                 }
                 destination.unwrap_or(*elf_pos)
             };
-            tentative_elf_destinations.entry(destination).or_insert(vec![]).push(*elf_pos);
+            tentative_elf_destinations
+                .entry(destination)
+                .or_insert(vec![])
+                .push(*elf_pos);
         }
         let mut new_group = ElfGroup::new();
         for (destination_pos, elves_going_to_destination) in tentative_elf_destinations.iter() {
             if elves_going_to_destination.len() == 1 {
                 new_group.insert(*destination_pos);
             } else {
-                elves_going_to_destination.iter().for_each(|elf_pos| { new_group.insert(*elf_pos); });
+                elves_going_to_destination.iter().for_each(|elf_pos| {
+                    new_group.insert(*elf_pos);
+                });
             }
         }
         self.elves_moved_last_round = elves_moved_this_round;
@@ -106,7 +121,11 @@ impl ElfGroupDispersalGame {
         let south_east = (x + 1, y + 1);
         let east = (x + 1, y);
         let north_east = (x + 1, y - 1);
-        [north, north_west, west, south_west, south, south_east, east, north_east].iter().all(|pos| !self.group.contains(pos))
+        [
+            north, north_west, west, south_west, south, south_east, east, north_east,
+        ]
+        .iter()
+        .all(|pos| !self.group.contains(pos))
     }
 
     fn elf_can_move_in_direction(&self, elf: &ElfPos, direction: &CardinalDirection) -> bool {
@@ -116,26 +135,34 @@ impl ElfGroupDispersalGame {
                 let north = (x, y - 1);
                 let north_west = (x - 1, y - 1);
                 let north_east = (x + 1, y - 1);
-                [north, north_west, north_east].iter().all(|pos| !self.group.contains(pos))
-            },
+                [north, north_west, north_east]
+                    .iter()
+                    .all(|pos| !self.group.contains(pos))
+            }
             CardinalDirection::East => {
                 let east = (x + 1, y);
                 let north_east = (x + 1, y - 1);
                 let south_east = (x + 1, y + 1);
-                [east, north_east, south_east].iter().all(|pos| !self.group.contains(pos))
-            },
+                [east, north_east, south_east]
+                    .iter()
+                    .all(|pos| !self.group.contains(pos))
+            }
             CardinalDirection::South => {
                 let south = (x, y + 1);
                 let south_west = (x - 1, y + 1);
                 let south_east = (x + 1, y + 1);
-                [south, south_west, south_east].iter().all(|pos| !self.group.contains(pos))
-            },
+                [south, south_west, south_east]
+                    .iter()
+                    .all(|pos| !self.group.contains(pos))
+            }
             CardinalDirection::West => {
                 let west = (x - 1, y);
                 let north_west = (x - 1, y - 1);
                 let south_west = (x - 1, y + 1);
-                [west, north_west, south_west].iter().all(|pos| !self.group.contains(pos))
-            },
+                [west, north_west, south_west]
+                    .iter()
+                    .all(|pos| !self.group.contains(pos))
+            }
         }
     }
 
@@ -155,20 +182,6 @@ impl ElfGroupDispersalGame {
             }
         }
         empty_spaces
-    }
-
-    fn print_group(&self) {
-        let ((min_x, min_y), (max_x, max_y)) = self.get_group_bounds();
-        for y in min_y..=max_y {
-            for x in min_x..=max_x {
-                if self.group.contains(&(x, y)) {
-                    print!("#");
-                } else {
-                    print!(".");
-                }
-            }
-            println!();
-        }
     }
 
     fn get_group_bounds(&self) -> (ElfPos, ElfPos) {
@@ -197,22 +210,30 @@ impl ElfGroupDispersalGame {
 fn main() {
     let path = "resources/input.txt";
     let contents = fs::read_to_string(path).expect("File not found");
-    let lines = contents.split("\n").map(|line| line.trim()).collect::<Vec<&str>>();
-    let group = lines.iter().enumerate().flat_map(|(y, line)| {
-        line.chars().enumerate().filter_map(move |(x, c)| {
-            if c == '#' {
-                Some((x as ElfPosComp, y as ElfPosComp))
-            } else {
-                None
-            }
+    let lines = contents
+        .split("\n")
+        .map(|line| line.trim())
+        .collect::<Vec<&str>>();
+    let group = lines
+        .iter()
+        .enumerate()
+        .flat_map(|(y, line)| {
+            line.chars().enumerate().filter_map(move |(x, c)| {
+                if c == '#' {
+                    Some((x as ElfPosComp, y as ElfPosComp))
+                } else {
+                    None
+                }
+            })
         })
-    }).collect::<ElfGroup>();
+        .collect::<ElfGroup>();
 
     // Part 1
+    let target_rounds = 10;
     let mut game = ElfGroupDispersalGame::new(group.clone());
-    game.perform_rounds(10);
+    game.perform_rounds(target_rounds);
     let empty_spaces = game.count_empty_spaces_within_bounds();
-    println!("Empty spaces after 10 rounds: {}", empty_spaces);
+    println!("Empty spaces after {} rounds: {}", target_rounds, empty_spaces);
 
     // Part 2
     let mut game = ElfGroupDispersalGame::new(group);
