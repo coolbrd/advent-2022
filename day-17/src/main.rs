@@ -1,20 +1,23 @@
-use std::{fs, collections::{HashSet, HashMap}};
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+};
 
 enum GustDirection {
     Left,
-    Right
+    Right,
 }
 
 struct RepeatingSequence<T> {
     sequence: Vec<T>,
-    current_index: usize
+    current_index: usize,
 }
 
 impl<T> RepeatingSequence<T> {
     fn new(sequence: Vec<T>) -> RepeatingSequence<T> {
         RepeatingSequence {
             sequence,
-            current_index: 0
+            current_index: 0,
         }
     }
 
@@ -35,21 +38,19 @@ impl<T> RepeatingSequence<T> {
 }
 
 struct Rock {
-    body_points: Vec<(u8, u8)>
+    body_points: Vec<(u8, u8)>,
 }
 
 impl Rock {
     fn new(body_points: Vec<(u8, u8)>) -> Rock {
-        Rock {
-            body_points
-        }
+        Rock { body_points }
     }
 }
 
 struct Chamber {
     width: u8,
     points: HashSet<(u8, u64)>,
-    highest_point_y: u64
+    highest_point_y: u64,
 }
 
 impl Chamber {
@@ -57,29 +58,38 @@ impl Chamber {
         Chamber {
             width,
             points: HashSet::new(),
-            highest_point_y: 0
+            highest_point_y: 0,
         }
     }
 
-    fn drop_rock(&mut self, rocks: &mut RepeatingSequence<Rock>, gusts: &mut RepeatingSequence<GustDirection>) {
+    fn drop_rock(
+        &mut self,
+        rocks: &mut RepeatingSequence<Rock>,
+        gusts: &mut RepeatingSequence<GustDirection>,
+    ) {
         let rock = rocks.next_item();
         let mut rock_pos = self.get_new_rock_origin();
         loop {
             let gust_direction = gusts.next_item();
             let gust_offset = match gust_direction {
                 GustDirection::Left => -1,
-                GustDirection::Right => 1
+                GustDirection::Right => 1,
             };
             let mut x_offset = gust_offset;
             let potential_rock_pos = (rock_pos.0 as i8 + x_offset, rock_pos.1);
             for body_point in &rock.body_points {
-                let potential_body_point = (potential_rock_pos.0 + body_point.0 as i8, potential_rock_pos.1 + body_point.1 as u64);
+                let potential_body_point = (
+                    potential_rock_pos.0 + body_point.0 as i8,
+                    potential_rock_pos.1 + body_point.1 as u64,
+                );
                 if potential_body_point.0 < 0 {
                     x_offset = 0;
                     break;
                 }
                 let potential_body_point = (potential_body_point.0 as u8, potential_body_point.1);
-                if potential_body_point.0 >= self.width || self.points.contains(&potential_body_point) {
+                if potential_body_point.0 >= self.width
+                    || self.points.contains(&potential_body_point)
+                {
                     x_offset = 0;
                     break;
                 }
@@ -93,7 +103,10 @@ impl Chamber {
             if !collision_found {
                 potential_rock_pos = (rock_pos.0, rock_pos.1 - 1);
                 for body_point in &rock.body_points {
-                    let potential_body_point = (potential_rock_pos.0 + body_point.0, potential_rock_pos.1 + body_point.1 as u64);
+                    let potential_body_point = (
+                        potential_rock_pos.0 + body_point.0,
+                        potential_rock_pos.1 + body_point.1 as u64,
+                    );
                     if self.points.contains(&potential_body_point) {
                         collision_found = true;
                         break;
@@ -126,23 +139,29 @@ impl Chamber {
 fn main() {
     let path = "resources/input.txt";
     let contents = fs::read_to_string(path).expect("File not found");
-    let gusts = contents.trim().chars().into_iter().map(|c| {
-        match c {
+    let gusts = contents
+        .trim()
+        .chars()
+        .into_iter()
+        .map(|c| match c {
             '<' => GustDirection::Left,
             '>' => GustDirection::Right,
-            _ => panic!("Invalid character")
-        }
-    }).collect::<Vec<GustDirection>>();
+            _ => panic!("Invalid character"),
+        })
+        .collect::<Vec<GustDirection>>();
     let mut gusts = RepeatingSequence::new(gusts);
-    let mut rocks = RepeatingSequence::new([
-        vec![(0, 0), (1, 0), (2, 0), (3, 0)],
-        vec![(1, 0), (0, 1), (1, 1), (2, 1), (1, 2)],
-        vec![(0, 0), (1, 0), (2, 0), (2, 1), (2, 2)],
-        vec![(0, 0), (0, 1), (0, 2), (0, 3)],
-        vec![(0, 0), (1, 0), (0, 1), (1, 1)]
-    ].iter().map(|pieces| {
-        Rock::new(pieces.to_vec())
-    }).collect::<Vec<Rock>>());
+    let mut rocks = RepeatingSequence::new(
+        [
+            vec![(0, 0), (1, 0), (2, 0), (3, 0)],
+            vec![(1, 0), (0, 1), (1, 1), (2, 1), (1, 2)],
+            vec![(0, 0), (1, 0), (2, 0), (2, 1), (2, 2)],
+            vec![(0, 0), (0, 1), (0, 2), (0, 3)],
+            vec![(0, 0), (1, 0), (0, 1), (1, 1)],
+        ]
+        .iter()
+        .map(|pieces| Rock::new(pieces.to_vec()))
+        .collect::<Vec<Rock>>(),
+    );
 
     // Part 1
     let mut chamber = Chamber::new(7);
@@ -168,15 +187,15 @@ fn main() {
             start_indices.push(i);
             let heights = cycle_heights.get_mut(&current_pair).unwrap();
             heights.push(chamber.highest_point_y);
-            let differences = heights.windows(2).map(|window| {
-                window[1] - window[0]
-            }).collect::<Vec<u64>>();
+            let differences = heights
+                .windows(2)
+                .map(|window| window[1] - window[0])
+                .collect::<Vec<u64>>();
             if differences.len() > 1 && differences.iter().all(|diff| *diff == differences[0]) {
                 cycle_pair = current_pair;
                 break;
             }
-        }
-        else {
+        } else {
             cycle_heights.insert(current_pair, vec![chamber.highest_point_y]);
             cycle_indices.insert(current_pair, vec![i]);
         }
