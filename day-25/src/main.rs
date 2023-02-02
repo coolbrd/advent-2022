@@ -1,12 +1,11 @@
 use std::fs;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
 enum SNAFUDigit {
     Zero,
     One,
     Two,
     Minus,
-    DoubleMinus
+    DoubleMinus,
 }
 
 impl SNAFUDigit {
@@ -17,7 +16,7 @@ impl SNAFUDigit {
             '2' => SNAFUDigit::Two,
             '-' => SNAFUDigit::Minus,
             '=' => SNAFUDigit::DoubleMinus,
-            _ => panic!("Invalid SNAFU digit")
+            _ => panic!("Invalid SNAFU digit"),
         }
     }
 }
@@ -37,7 +36,7 @@ impl ToString for SNAFUNumber {
                 SNAFUDigit::One => '1',
                 SNAFUDigit::Two => '2',
                 SNAFUDigit::Minus => '-',
-                SNAFUDigit::DoubleMinus => '='
+                SNAFUDigit::DoubleMinus => '=',
             });
         }
         result
@@ -58,7 +57,7 @@ impl Toi64 for SNAFUNumber {
                 SNAFUDigit::One => 1,
                 SNAFUDigit::Two => 2,
                 SNAFUDigit::Minus => -1,
-                SNAFUDigit::DoubleMinus => -2
+                SNAFUDigit::DoubleMinus => -2,
             } * multiplier;
             multiplier *= 5;
         }
@@ -82,7 +81,7 @@ impl Fromi64 for SNAFUNumber {
                 2 => (normal_div, SNAFUDigit::Two),
                 3 => (normal_div + 1, SNAFUDigit::DoubleMinus),
                 4 => (normal_div + 1, SNAFUDigit::Minus),
-                _ => panic!("Invalid SNAFU digit")
+                _ => panic!("Invalid SNAFU digit"),
             };
             result.push(cur);
             remaining = div;
@@ -94,13 +93,21 @@ impl Fromi64 for SNAFUNumber {
 fn main() {
     let path = "resources/input.txt";
     let contents = fs::read_to_string(path).expect("File not found");
-    let lines = contents.split("\n").map(|line| line.trim()).collect::<Vec<&str>>();
-    let snafu_numbers = lines.iter().map(|line| {
-        line.chars().rev().map(|c| SNAFUDigit::from_char(c)).collect::<SNAFUNumber>()
-    }).collect::<Vec<SNAFUNumber>>();
+    let lines = contents
+        .split("\n")
+        .map(|line| line.trim())
+        .collect::<Vec<&str>>();
 
-    // Part 1
+    let snafu_numbers = lines
+        .iter()
+        .map(|line| {
+            line.chars()
+                .rev()
+                .map(|c| SNAFUDigit::from_char(c))
+                .collect::<SNAFUNumber>()
+        })
+        .collect::<Vec<SNAFUNumber>>();
     let sum = snafu_numbers.iter().map(|num| num.to_i64()).sum::<i64>();
     let sum_snafu = SNAFUNumber::from_i64(sum);
-    println!("Part 1: {}", sum_snafu.to_string());
+    println!("SNAFU sum: {}", sum_snafu.to_string());
 }
