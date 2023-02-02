@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, fs};
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum PacketItem {
     Val(u8),
     List(Vec<PacketItem>),
@@ -46,14 +46,15 @@ fn main() {
         .collect::<Vec<(PacketItem, PacketItem)>>();
 
     // Part 1
-    let mut index_sum = 0;
-    for (i, pair) in packet_pairs.iter().enumerate() {
+    let index_sum = packet_pairs.iter().enumerate().map(|(i, pair)| {
         let (packet_1, packet_2) = pair;
         let comparison = check_packet_items_correctly_ordered(packet_1, packet_2);
-        if comparison == PacketOrderCorrectness::Correct {
-            index_sum += i + 1;
+        match comparison {
+            PacketOrderCorrectness::Correct => i + 1,
+            PacketOrderCorrectness::Incorrect => 0,
+            PacketOrderCorrectness::Unknown => panic!("Unknown top-level packet order: {:?}", pair),
         }
-    }
+    }).sum::<usize>();
     println!("Index sum: {}", index_sum);
 
     // Part 2
