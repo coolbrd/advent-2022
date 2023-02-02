@@ -1,11 +1,16 @@
-use std::{fs, ops::{Sub, Add}};
+use std::{
+    fs,
+    ops::{Add, Sub},
+};
 
-#[derive(Debug, Clone, Copy)]
+type ResourceValue = u16;
+
+#[derive(Clone, Copy)]
 struct ResourceAmount {
-    ore: u8,
-    clay: u8,
-    obsidian: u8,
-    geode: u8
+    ore: ResourceValue,
+    clay: ResourceValue,
+    obsidian: ResourceValue,
+    geode: ResourceValue,
 }
 
 impl Add for ResourceAmount {
@@ -16,7 +21,7 @@ impl Add for ResourceAmount {
             ore: self.ore + other.ore,
             clay: self.clay + other.clay,
             obsidian: self.obsidian + other.obsidian,
-            geode: self.geode + other.geode
+            geode: self.geode + other.geode,
         }
     }
 }
@@ -29,35 +34,34 @@ impl Sub for ResourceAmount {
             ore: self.ore - other.ore,
             clay: self.clay - other.clay,
             obsidian: self.obsidian - other.obsidian,
-            geode: self.geode - other.geode
+            geode: self.geode - other.geode,
         }
     }
 }
 
-#[derive(Debug)]
 struct Blueprint {
     ore_robot_cost: ResourceAmount,
     clay_robot_cost: ResourceAmount,
     obsidian_robot_cost: ResourceAmount,
-    geode_robot_cost: ResourceAmount
+    geode_robot_cost: ResourceAmount,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone)]
 struct RobotState {
     time_left: u8,
-    ore_robots: u8,
-    clay_robots: u8,
-    obsidian_robots: u8,
-    geode_robots: u8,
-    resources: ResourceAmount
+    ore_robots: ResourceValue,
+    clay_robots: ResourceValue,
+    obsidian_robots: ResourceValue,
+    geode_robots: ResourceValue,
+    resources: ResourceAmount,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 enum RobotTypes {
     Ore,
     Clay,
     Obsidian,
-    Geode
+    Geode,
 }
 
 impl RobotState {
@@ -72,12 +76,12 @@ impl RobotState {
                 ore: 0,
                 clay: 0,
                 obsidian: 0,
-                geode: 0
-            }
+                geode: 0,
+            },
         }
     }
 
-    fn get_possible_final_geodes(&self, blueprint: &Blueprint) -> Vec<u8> {
+    fn get_possible_final_geodes(&self, blueprint: &Blueprint) -> Vec<ResourceValue> {
         if self.is_done() {
             return vec![self.resources.geode];
         }
@@ -87,8 +91,7 @@ impl RobotState {
             let successor = successors.pop().unwrap();
             if successor.is_done() {
                 final_geode_counts.push(successor.resources.geode);
-            }
-            else {
+            } else {
                 let new_successors = successor.get_successors(blueprint);
                 successors.extend(new_successors);
             }
@@ -111,39 +114,51 @@ impl RobotState {
                 RobotTypes::Ore => successors.push(self.get_build_ore_robot_successor(blueprint)),
                 RobotTypes::Clay => successors.push(self.get_build_clay_robot_successor(blueprint)),
                 RobotTypes::Obsidian => successors.push(self.get_build_obsidian_robot_successor(blueprint)),
-                RobotTypes::Geode => successors.push(self.get_build_geode_robot_successor(blueprint))
+                RobotTypes::Geode => successors.push(self.get_build_geode_robot_successor(blueprint)),
             }
         }
         let mut current_do_nothing_successor = self.get_do_nothing_successor();
-        let mut current_buildable_robot_types = current_do_nothing_successor.get_useful_buildable_robot_types(blueprint);
-        while current_buildable_robot_types.len() == buildable_robot_types.len() && !current_do_nothing_successor.is_done() {
+        let mut current_buildable_robot_types =
+            current_do_nothing_successor.get_useful_buildable_robot_types(blueprint);
+        while current_buildable_robot_types.len() == buildable_robot_types.len()
+            && !current_do_nothing_successor.is_done()
+        {
             current_do_nothing_successor = current_do_nothing_successor.get_do_nothing_successor();
-            current_buildable_robot_types = current_do_nothing_successor.get_useful_buildable_robot_types(blueprint);
+            current_buildable_robot_types =
+                current_do_nothing_successor.get_useful_buildable_robot_types(blueprint);
         }
         successors.push(current_do_nothing_successor);
-        successors
+        return successors;
     }
 
     fn get_useful_buildable_robot_types(&self, blueprint: &Blueprint) -> Vec<RobotTypes> {
-        let mut need_more_ore_robots = self.get_current_ore_output() < blueprint.geode_robot_cost.ore;
-        let mut need_more_clay_robots = self.get_current_clay_output() < blueprint.geode_robot_cost.clay;
-        let need_more_obsidian_robots = self.get_current_obsidian_output() < blueprint.geode_robot_cost.obsidian;
+        let mut need_more_ore_robots =
+            self.get_current_ore_output() < blueprint.geode_robot_cost.ore;
+        let mut need_more_clay_robots =
+            self.get_current_clay_output() < blueprint.geode_robot_cost.clay;
+        let need_more_obsidian_robots =
+            self.get_current_obsidian_output() < blueprint.geode_robot_cost.obsidian;
         if need_more_obsidian_robots {
-            need_more_ore_robots = self.get_current_ore_output() < blueprint.obsidian_robot_cost.ore;
-            need_more_clay_robots = self.get_current_clay_output() < blueprint.obsidian_robot_cost.clay;
+            need_more_ore_robots =
+                self.get_current_ore_output() < blueprint.obsidian_robot_cost.ore;
+            need_more_clay_robots =
+                self.get_current_clay_output() < blueprint.obsidian_robot_cost.clay;
             if need_more_clay_robots {
-                need_more_ore_robots = self.get_current_ore_output() < blueprint.clay_robot_cost.ore;
+                need_more_ore_robots =
+                    self.get_current_ore_output() < blueprint.clay_robot_cost.ore;
             }
         }
         let robot_types = self.get_buildable_robot_types(blueprint);
-        robot_types.iter().filter(|robot_type| {
-            match robot_type {
+        robot_types
+            .iter()
+            .filter(|robot_type| match robot_type {
                 RobotTypes::Ore => need_more_ore_robots,
                 RobotTypes::Clay => need_more_clay_robots,
                 RobotTypes::Obsidian => need_more_obsidian_robots,
-                RobotTypes::Geode => true
-            }
-        }).cloned().collect()
+                RobotTypes::Geode => true,
+            })
+            .cloned()
+            .collect()
     }
 
     fn get_buildable_robot_types(&self, blueprint: &Blueprint) -> Vec<RobotTypes> {
@@ -170,7 +185,7 @@ impl RobotState {
             clay_robots: self.clay_robots,
             obsidian_robots: self.obsidian_robots,
             geode_robots: self.geode_robots,
-            resources: self.resources + self.get_current_resource_output()
+            resources: self.resources + self.get_current_resource_output(),
         }
     }
 
@@ -181,7 +196,8 @@ impl RobotState {
             clay_robots: self.clay_robots,
             obsidian_robots: self.obsidian_robots,
             geode_robots: self.geode_robots,
-            resources: self.resources + self.get_current_resource_output() - blueprint.ore_robot_cost
+            resources: self.resources + self.get_current_resource_output()
+                - blueprint.ore_robot_cost,
         }
     }
 
@@ -192,7 +208,8 @@ impl RobotState {
             clay_robots: self.clay_robots + 1,
             obsidian_robots: self.obsidian_robots,
             geode_robots: self.geode_robots,
-            resources: self.resources + self.get_current_resource_output() - blueprint.clay_robot_cost
+            resources: self.resources + self.get_current_resource_output()
+                - blueprint.clay_robot_cost,
         }
     }
 
@@ -203,7 +220,8 @@ impl RobotState {
             clay_robots: self.clay_robots,
             obsidian_robots: self.obsidian_robots + 1,
             geode_robots: self.geode_robots,
-            resources: self.resources + self.get_current_resource_output() - blueprint.obsidian_robot_cost
+            resources: self.resources + self.get_current_resource_output()
+                - blueprint.obsidian_robot_cost,
         }
     }
 
@@ -214,7 +232,8 @@ impl RobotState {
             clay_robots: self.clay_robots,
             obsidian_robots: self.obsidian_robots,
             geode_robots: self.geode_robots + 1,
-            resources: self.resources + self.get_current_resource_output() - blueprint.geode_robot_cost
+            resources: self.resources + self.get_current_resource_output()
+                - blueprint.geode_robot_cost,
         }
     }
 
@@ -234,19 +253,19 @@ impl RobotState {
         self.resources.ore >= cost.ore && self.resources.obsidian >= cost.obsidian
     }
 
-    fn get_current_ore_output(&self) -> u8 {
+    fn get_current_ore_output(&self) -> ResourceValue {
         self.ore_robots
     }
 
-    fn get_current_clay_output(&self) -> u8 {
+    fn get_current_clay_output(&self) -> ResourceValue {
         self.clay_robots
     }
 
-    fn get_current_obsidian_output(&self) -> u8 {
+    fn get_current_obsidian_output(&self) -> ResourceValue {
         self.obsidian_robots
     }
 
-    fn get_current_geode_output(&self) -> u8 {
+    fn get_current_geode_output(&self) -> ResourceValue {
         self.geode_robots
     }
 
@@ -255,7 +274,7 @@ impl RobotState {
             ore: self.get_current_ore_output(),
             clay: self.get_current_clay_output(),
             obsidian: self.get_current_obsidian_output(),
-            geode: self.get_current_geode_output()
+            geode: self.get_current_geode_output(),
         }
     }
 }
@@ -263,59 +282,66 @@ impl RobotState {
 fn main() {
     let path = "resources/input.txt";
     let contents = fs::read_to_string(path).expect("File not found");
-    let lines = contents.split("\n").map(|line| line.trim()).collect::<Vec<&str>>();
-    let blueprints = lines.iter().map(|line| {
-        let costs = line.split(":").map(|robot_cost| {
-            robot_cost.split(",").map(|cost_component| {
-                cost_component.parse().unwrap()
-            }).collect()
-        }).collect::<Vec<Vec<u8>>>();
-        let ore_robot_cost = ResourceAmount {
-            ore: costs[0][0],
-            clay: 0,
-            obsidian: 0,
-            geode: 0
-        };
-        let clay_robot_cost = ResourceAmount {
-            ore: costs[1][0],
-            clay: 0,
-            obsidian: 0,
-            geode: 0
-        };
-        let obsidian_robot_cost = ResourceAmount {
-            ore: costs[2][0],
-            clay: costs[2][1],
-            obsidian: 0,
-            geode: 0
-        };
-        let geode_robot_cost = ResourceAmount {
-            ore: costs[3][0],
-            clay: 0,
-            obsidian: costs[3][1],
-            geode: 0
-        };
-        Blueprint {
-            ore_robot_cost,
-            clay_robot_cost,
-            obsidian_robot_cost,
-            geode_robot_cost
-        }
-    }).collect::<Vec<Blueprint>>();
+    let lines = contents
+        .split("\n")
+        .map(|line| line.trim())
+        .collect::<Vec<&str>>();
+    let blueprints = lines
+        .iter()
+        .map(|line| {
+            let costs = line
+                .split(":")
+                .map(|robot_cost| {
+                    robot_cost
+                        .split(",")
+                        .map(|cost_component| cost_component.parse().unwrap())
+                        .collect()
+                })
+                .collect::<Vec<Vec<ResourceValue>>>();
+            let ore_robot_cost = ResourceAmount {
+                ore: costs[0][0],
+                clay: 0,
+                obsidian: 0,
+                geode: 0,
+            };
+            let clay_robot_cost = ResourceAmount {
+                ore: costs[1][0],
+                clay: 0,
+                obsidian: 0,
+                geode: 0,
+            };
+            let obsidian_robot_cost = ResourceAmount {
+                ore: costs[2][0],
+                clay: costs[2][1],
+                obsidian: 0,
+                geode: 0,
+            };
+            let geode_robot_cost = ResourceAmount {
+                ore: costs[3][0],
+                clay: 0,
+                obsidian: costs[3][1],
+                geode: 0,
+            };
+            Blueprint {
+                ore_robot_cost,
+                clay_robot_cost,
+                obsidian_robot_cost,
+                geode_robot_cost,
+            }
+        })
+        .collect::<Vec<Blueprint>>();
 
     // Part 1
     let initial_state = RobotState::new(24);
     let mut total_quality = 0;
     for (i, blueprint) in blueprints.iter().enumerate() {
         let blueprint_number = i + 1;
-        println!("Blueprint #{}", blueprint_number);
         let final_geode_counts = initial_state.get_possible_final_geodes(blueprint);
-        let max_geode_count = final_geode_counts.iter().max().unwrap();
-        let quality = *max_geode_count as usize * blueprint_number;
-        println!("Final state count: {}", final_geode_counts.len());
-        println!("Max: {}", max_geode_count);
+        let max_geode_count = *final_geode_counts.iter().max().unwrap();
+        let quality = max_geode_count as usize * blueprint_number;
         total_quality += quality;
     }
-    println!("Total quality: {}", total_quality);
+    println!("Total quality of all blueprints: {}", total_quality);
 
     // Part 2
     let initial_state = RobotState::new(32);
@@ -323,10 +349,8 @@ fn main() {
     for blueprint in blueprints[0..=2].iter() {
         let final_geode_counts = initial_state.get_possible_final_geodes(blueprint);
         let max_geode_count = final_geode_counts.iter().max().unwrap();
-        println!("Final state count: {}", final_geode_counts.len());
-        println!("Max: {}", max_geode_count);
         highest_geode_counts.push(*max_geode_count as usize);
     }
     let geode_count_product = highest_geode_counts.iter().product::<usize>();
-    println!("Product: {}", geode_count_product);
+    println!("Product of first three blueprints: {}", geode_count_product);
 }
